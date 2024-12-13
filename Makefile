@@ -1,40 +1,36 @@
+BOOT_DIR = boot
+KERNEL_DIR = kernel
 BUILD_DIR = build
-SRC_DIR = .
 
-C_SOURCES = $(wildcard $(SRC_DIR)/kernel/*.c $(SRC_DIR)/drivers/*.c)
-C_HEADERS = $(wildcard $(SRC_DIR)/kernel/*.h $(SRC_DIR)/drivers/*.h)
+BOOTLOADER_BIN = $(BUILD_DIR)/bootloader.bin
+KERNEL_BIN = $(BUILD_DIR)/kernel.bin
+DISK_IMG = $(BUILD_DIR)/bootable.img
 
-ASM_SOURCES = $(wildcard $(SRC_DIR)/boot/*.asm)
-ASM_BINS = $(patsubst $(SRC_DIR)/boot/%.asm, $(BUILD_DIR)/boot/%.bin, $(ASM_SOURCES))
+.PHONY: all clean run
 
-OBJ = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(C_SOURCES))
-ASM_OBJ = $(patsubst $(SRC_DIR)/%.asm, $(BUILD_DIR)/%.o, $(wildcard $(SRC_DIR)/kernel/*.asm $(SRC_DIR)/drivers/*.asm))
+all: $(DISK_IMG)
 
-CFLAGS = -m32 -fno-pie -fno-stack-protector -nostdlib -ffreestanding
-LDFLAGS = -m elf_i386 -Ttext 0x1000 --oformat binary -e kernel_entry
+# Build bootloader
+$(BOOTLOADER_BIN):
+	make -C $(BOOT_DIR)
 
-all: os-image
+# Build kernel
+$(KERNEL_BIN):
+	make -C $(KERNEL_DIR)
 
-run: all
-	qemu-system-i386 -drive format=raw,file=os-image
+# Create bootable disk image
+$(DISK_IMG): $(BOOTLOADER_BIN) $(KERNEL_BIN)
+	mkdir -p $(BUILD_DIR)
+	dd if=/dev/zero of=$@ bs=512 count=2880
+	dd if=$(BOOTLOADER_BIN) of=$@ bs=512 count=1 conv=notrunc
+	dd if=$(KERNEL_BIN) of=$@ bs=512 seek=1 conv=notrunc
 
-os-image: $(BUILD_DIR)/boot/bootloader.bin $(BUILD_DIR)/kernel.bin
-	cat $^ > $@
-
-$(BUILD_DIR)/kernel.bin: $(BUILD_DIR)/kernel/kernel_entry.o $(OBJ)
-	ld $(LDFLAGS) -o $@ $^
-
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(C_HEADERS)
-	mkdir -p $(dir $@)
-	gcc $(CFLAGS) -c $< -o $@
-
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.asm
-	mkdir -p $(dir $@)
-	nasm $< -f elf -o $@
-
-$(BUILD_DIR)/boot/%.bin: $(SRC_DIR)/boot/%.asm
-	mkdir -p $(dir $@)
-	nasm $< -f bin -I $(SRC_DIR)/boot/ -o $@
-
+# Clean everything
 clean:
-	rm -rf $(BUILD_DIR) os-image
+	make -C $(BOOT_DIR) clean
+	make -C $(KERNEL_DIR) clean
+	rm -f $(DISK_IMG)
+
+# Run the image in QEMU
+run: $(DISK_IMG)
+	qemu-system-i386 -drive format=raw,file=$(DISK_IMG)
