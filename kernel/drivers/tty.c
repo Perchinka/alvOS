@@ -83,3 +83,22 @@ void tty_putchar(char c) {
     break;
   }
 }
+
+#define INPUT_BUFFER_SIZE 256
+static char input_buffer[INPUT_BUFFER_SIZE];
+static size_t input_index = 0;
+
+void tty_read_line(char *line) {
+  while (1) {
+    if (input_index > 0 && input_buffer[input_index - 1] == '\n') {
+      break;
+    }
+  }
+
+  for (size_t i = 0; i < input_index - 1; i++) { // Exclude newline
+    line[i] = input_buffer[i];
+  }
+  line[input_index - 1] = '\0'; // Null-terminate the string
+
+  input_index = 0;
+}

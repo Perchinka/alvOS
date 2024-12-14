@@ -27,10 +27,8 @@ $(DISK_IMG): $(BOOTLOADER_BIN) $(KERNEL_BIN)
 
 # Clean everything
 clean:
-	make -C $(BOOT_DIR) clean
-	make -C $(KERNEL_DIR) clean
-	rm -f $(DISK_IMG)
+	rm -rf build/
 
 # Run the image in QEMU
-run: $(DISK_IMG)
+run: clean $(DISK_IMG) 
 	qemu-system-i386 -drive format=raw,file=$(DISK_IMG)

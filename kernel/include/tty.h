@@ -7,5 +7,5 @@
 void tty_initialize();
 void tty_write(const char *str);
 void tty_putchar(char c);
-
+void tty_read_line(char *line);
 #endif

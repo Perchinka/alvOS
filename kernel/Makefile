@@ -7,10 +7,7 @@ C_SRCS = $(wildcard $(SRC_DIR)/*.c) \
          $(wildcard $(SRC_DIR)/lib/*.c) \
          $(wildcard $(SRC_DIR)/sys/*.c)
 
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(C_SRCS)) \
-       $(patsubst $(SRC_DIR)/drivers/%.c, $(BUILD_DIR)/drivers/%.o, $(wildcard $(SRC_DIR)/drivers/*.c)) \
-       $(patsubst $(SRC_DIR)/lib/%.c, $(BUILD_DIR)/lib/*.o, $(wildcard $(SRC_DIR)/lib/*.c)) \
-       $(patsubst $(SRC_DIR)/sys/%.c, $(BUILD_DIR)/sys/%.o, $(wildcard $(SRC_DIR)/sys/*.c))
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(BUILD_DIR)/%.o, $(C_SRCS))
 
 # Output kernel binary
 KERNEL_BIN = $(BUILD_DIR)/kernel.bin
@@ -25,7 +22,7 @@ LDFLAGS = -T $(LINKER_SCRIPT) -m elf_i386
 
 .PHONY: all clean
 
-all: $(KERNEL_BIN) $(OBJS)
+all: $(KERNEL_BIN)
 
 # Compile each source file into an object file
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
