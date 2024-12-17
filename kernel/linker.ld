@@ -1,16 +1,29 @@
-OUTPUT_FORMAT(elf32-i386)
-ENTRY(kernel_main)
+OUTPUT_FORMAT("binary")
+ENTRY(_start)
+SECTIONS
+{
+    . = 0x1000;
 
-SECTIONS {
-    . = 0x1000;  /* Load address of the kernel */
-    .text : {
+    .text BLOCK(4K) : ALIGN(4K)
+    {
+        *(.text.prologue)
         *(.text)
     }
-    .data : {
+
+    .rodata BLOCK(4K) : ALIGN(4K)
+    {
+        *(.rodata)
+    }
+
+    .data BLOCK(4K) : ALIGN(4K)
+    {
         *(.data)
     }
-    .bss : {
-        *(COMMON)
+
+    .bss BLOCK(4K) : ALIGN(4K)
+    {
         *(.bss)
     }
+
+    end = .;
 }

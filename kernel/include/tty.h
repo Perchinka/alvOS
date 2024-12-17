@@ -1,11 +1,8 @@
 #ifndef TTY_H
 #define TTY_H
 
-#include <stddef.h>
-#include <stdint.h>
-
 void tty_initialize();
 void tty_write(const char *str);
 void tty_putchar(char c);
-void tty_read_line(char *line);
+void tty_clear();
 #endif

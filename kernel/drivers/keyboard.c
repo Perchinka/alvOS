@@ -1,58 +1,213 @@
+#include "../include/keyboard.h"
+#include "../include/irq.h"
+#include "../include/system.h"
 #include "../include/tty.h"
-#include <stdint.h>
 
-// I/O port functions
-static inline uint8_t inb(uint16_t port) {
-  uint8_t ret;
-  __asm__ volatile("inb %1, %0" : "=a"(ret) : "Nd"(port));
-  return ret;
-}
+u8 keyboard_layout_us[2][128] = {{KEY_NULL,
+                                  KEY_ESC,
+                                  '1',
+                                  '2',
+                                  '3',
+                                  '4',
+                                  '5',
+                                  '6',
+                                  '7',
+                                  '8',
+                                  '9',
+                                  '0',
+                                  '-',
+                                  '=',
+                                  KEY_BACKSPACE,
+                                  KEY_TAB,
+                                  'q',
+                                  'w',
+                                  'e',
+                                  'r',
+                                  't',
+                                  'y',
+                                  'u',
+                                  'i',
+                                  'o',
+                                  'p',
+                                  '[',
+                                  ']',
+                                  KEY_ENTER,
+                                  0,
+                                  'a',
+                                  's',
+                                  'd',
+                                  'f',
+                                  'g',
+                                  'h',
+                                  'j',
+                                  'k',
+                                  'l',
+                                  ';',
+                                  '\'',
+                                  '`',
+                                  0,
+                                  '\\',
+                                  'z',
+                                  'x',
+                                  'c',
+                                  'v',
+                                  'b',
+                                  'n',
+                                  'm',
+                                  ',',
+                                  '.',
+                                  '/',
+                                  0,
+                                  0,
+                                  0,
+                                  ' ',
+                                  0,
+                                  KEY_F1,
+                                  KEY_F2,
+                                  KEY_F3,
+                                  KEY_F4,
+                                  KEY_F5,
+                                  KEY_F6,
+                                  KEY_F7,
+                                  KEY_F8,
+                                  KEY_F9,
+                                  KEY_F10,
+                                  0,
+                                  0,
+                                  KEY_HOME,
+                                  KEY_UP,
+                                  KEY_PAGE_UP,
+                                  '-',
+                                  KEY_LEFT,
+                                  '5',
+                                  KEY_RIGHT,
+                                  '+',
+                                  KEY_END,
+                                  KEY_DOWN,
+                                  KEY_PAGE_DOWN,
+                                  KEY_INSERT,
+                                  KEY_DELETE,
+                                  0,
+                                  0,
+                                  0,
+                                  KEY_F11,
+                                  KEY_F12},
+                                 {KEY_NULL,
+                                  KEY_ESC,
+                                  '!',
+                                  '@',
+                                  '#',
+                                  '$',
+                                  '%',
+                                  '^',
+                                  '&',
+                                  '*',
+                                  '(',
+                                  ')',
+                                  '_',
+                                  '+',
+                                  KEY_BACKSPACE,
+                                  KEY_TAB,
+                                  'Q',
+                                  'W',
+                                  'E',
+                                  'R',
+                                  'T',
+                                  'Y',
+                                  'U',
+                                  'I',
+                                  'O',
+                                  'P',
+                                  '{',
+                                  '}',
+                                  KEY_ENTER,
+                                  0,
+                                  'A',
+                                  'S',
+                                  'D',
+                                  'F',
+                                  'G',
+                                  'H',
+                                  'J',
+                                  'K',
+                                  'L',
+                                  ':',
+                                  '\"',
+                                  '~',
+                                  0,
+                                  '|',
+                                  'Z',
+                                  'X',
+                                  'C',
+                                  'V',
+                                  'B',
+                                  'N',
+                                  'M',
+                                  '<',
+                                  '>',
+                                  '?',
+                                  0,
+                                  0,
+                                  0,
+                                  ' ',
+                                  0,
+                                  KEY_F1,
+                                  KEY_F2,
+                                  KEY_F3,
+                                  KEY_F4,
+                                  KEY_F5,
+                                  KEY_F6,
+                                  KEY_F7,
+                                  KEY_F8,
+                                  KEY_F9,
+                                  KEY_F10,
+                                  0,
+                                  0,
+                                  KEY_HOME,
+                                  KEY_UP,
+                                  KEY_PAGE_UP,
+                                  '-',
+                                  KEY_LEFT,
+                                  '5',
+                                  KEY_RIGHT,
+                                  '+',
+                                  KEY_END,
+                                  KEY_DOWN,
+                                  KEY_PAGE_DOWN,
+                                  KEY_INSERT,
+                                  KEY_DELETE,
+                                  0,
+                                  0,
+                                  0,
+                                  KEY_F11,
+                                  KEY_F12}};
 
-static inline void outb(uint16_t port, uint8_t value) {
-  __asm__ volatile("outb %0, %1" : : "a"(value), "Nd"(port));
-}
+struct Keyboard keyboard = {0};
 
-// Keymap (simplified US QWERTY)
-static const char keymap[128] = {
-    0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-    '\b', // Backspace
-    '\t', // Tab
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n', // Enter
-    0,                                                                // Ctrl
-    'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0,   // Left
-                                                                      // Shift
-    '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, // Right Shift
-    '*', 0, ' ',                                               // Space
-    // Remaining keys can be added as needed
-};
+static void keyboard_handler(struct Registers *regs) {
+  u16 scancode = (u16)inb(0x60);
 
-// Keyboard input buffer
-#define INPUT_BUFFER_SIZE 256
-static char input_buffer[INPUT_BUFFER_SIZE];
-static size_t input_index = 0;
+  bool released = KEY_IS_RELEASE(scancode);
+  u8 key = KEY_SCANCODE(scancode);
 
-void keyboard_poll() {
-  // Check if data is available in the output buffer
-  if (inb(0x64) & 0x01) {
-    uint8_t scan_code = inb(0x60); // Read scan code
-    if (scan_code < 128) {         // Ignore key releases
-      char key = keymap[scan_code];
-      if (key) {
-        if (key == '\n') {
-          // Process newline
-          input_buffer[input_index++] = key;
-          input_buffer[input_index] = '\0';
-          tty_write(input_buffer);
-          input_index = 0; // Reset buffer
-        } else if (key == '\b') {
-          // Handle backspace
-          if (input_index > 0) {
-            input_index--;
-          }
-        } else if (input_index < INPUT_BUFFER_SIZE - 1) {
-          input_buffer[input_index++] = key;
-        }
-      }
-    }
+  keyboard.keys[key] = !released;
+
+  // Handle Shift
+  bool shift = keyboard.keys[KEY_LSHIFT] || keyboard.keys[KEY_RSHIFT];
+
+  // Ignore key releases
+  if (released) {
+    return;
+  }
+
+  // Handle printable characters
+  u8 character = keyboard_layout_us[shift ? 1 : 0][key];
+  if (character) {
+    tty_putchar(character);
+  } else if (key == KEY_ENTER) {
+    tty_putchar('\n');
+  } else if (key == KEY_BACKSPACE) {
   }
 }
+
+void keyboard_init() { irq_install(1, keyboard_handler); }

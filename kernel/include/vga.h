@@ -8,7 +8,6 @@
 #define VGA_HEIGHT 25
 #define VGA_MEMORY ((uint16_t *)0xB8000) // VGA memory address
 
-// VGA color codes
 enum VGA_COLOR {
   VGA_COLOR_BLACK = 0,
   VGA_COLOR_BLUE = 1,
@@ -28,10 +27,9 @@ enum VGA_COLOR {
   VGA_COLOR_WHITE = 15
 };
 
-// Functions
 void vga_initialize();
 void vga_clear();
 void vga_put_char(char c, uint8_t color, size_t x, size_t y);
 void vga_write_string(const char *str, uint8_t color, size_t x, size_t y);
 
-#endif // VGA_H
+#endif
