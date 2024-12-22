@@ -1,5 +1,7 @@
 #include "../include/keyboard.h"
 #include "../include/irq.h"
+#include "../include/system.h"
+#include "../include/timer.h"
 
 u8 keyboard_layout_us[2][128] = {{KEY_NULL,
                                   KEY_ESC,
@@ -180,29 +182,42 @@ u8 keyboard_layout_us[2][128] = {{KEY_NULL,
                                   KEY_F11,
                                   KEY_F12}};
 
-struct Keyboard keyboard = {0};
+struct Keyboard keyboard;
+static bool seeded = false;
 
 static void keyboard_handler(struct Registers *regs) {
   u16 scancode = (u16)inb(0x60);
 
-  bool released = KEY_IS_RELEASE(scancode);
-  u8 key = KEY_SCANCODE(scancode);
-
-  keyboard.keys[key] = !released;
-
-  bool shift = keyboard.keys[KEY_LSHIFT] || keyboard.keys[KEY_RSHIFT];
-
-  if (released) {
-    return;
+  if (!seeded) {
+    seed(((u32)scancode) * 17 + timer_get());
+    seeded = true;
   }
 
-  u8 character = keyboard_layout_us[shift ? 1 : 0][key];
-  if (character) {
-    // tty_putc(character);
-  } else if (key == KEY_ENTER) {
-    // tty_putc('\n');
-  } else if (key == KEY_BACKSPACE) {
+  if (KEY_SCANCODE(scancode) == KEY_LALT ||
+      KEY_SCANCODE(scancode) == KEY_RALT) {
+    keyboard.mods =
+        BIT_SET(keyboard.mods, HIBIT(KEY_MOD_ALT), KEY_IS_PRESS(scancode));
+  } else if (KEY_SCANCODE(scancode) == KEY_LCTRL ||
+             KEY_SCANCODE(scancode) == KEY_RCTRL) {
+    keyboard.mods =
+        BIT_SET(keyboard.mods, HIBIT(KEY_MOD_CTRL), KEY_IS_PRESS(scancode));
+  } else if (KEY_SCANCODE(scancode) == KEY_LSHIFT ||
+             KEY_SCANCODE(scancode) == KEY_RSHIFT) {
+    keyboard.mods =
+        BIT_SET(keyboard.mods, HIBIT(KEY_MOD_SHIFT), KEY_IS_PRESS(scancode));
+  } else if (KEY_SCANCODE(scancode) == KEY_CAPS_LOCK) {
+    keyboard.mods = BIT_SET(keyboard.mods, HIBIT(KEY_MOD_CAPS_LOCK),
+                            KEY_IS_PRESS(scancode));
+  } else if (KEY_SCANCODE(scancode) == KEY_NUM_LOCK) {
+    keyboard.mods =
+        BIT_SET(keyboard.mods, HIBIT(KEY_MOD_NUM_LOCK), KEY_IS_PRESS(scancode));
+  } else if (KEY_SCANCODE(scancode) == KEY_SCROLL_LOCK) {
+    keyboard.mods = BIT_SET(keyboard.mods, HIBIT(KEY_MOD_SCROLL_LOCK),
+                            KEY_IS_PRESS(scancode));
   }
+
+  keyboard.keys[(u8)(scancode & 0x7F)] = KEY_IS_PRESS(scancode);
+  keyboard.chars[KEY_CHAR(scancode)] = KEY_IS_PRESS(scancode);
 }
 
 void keyboard_init() { irq_install(1, keyboard_handler); }

@@ -1,6 +1,7 @@
 #ifndef SCREEN_H
 #define SCREEN_H
 
+#include "math.h"
 #include "utils.h"
 
 #define SCREEN_WIDTH 320
@@ -22,8 +23,10 @@
   })
 void screen_init();
 void screen_clear(u8 color);
-void screen_set(u8 color, u16 x, u16 y);
+void screen_set_pixel(u8 color, u16 x, u16 y);
 void screen_draw_char(char c, u16 x, u16 y, u8 color);
 void screen_draw_string(const char *str, u16 x, u16 y, u8 color);
+void screen_draw_line(u8 color, u16 x0, u16 y0, u16 x1, u16 y1);
+void screen_fill_rect(u8 color, u16 x, u16 y, u16 width, u16 height);
 
 #endif // SCREEN_H

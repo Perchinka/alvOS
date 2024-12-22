@@ -1,7 +1,7 @@
-#include "screen.h"
-#include "font.h"
-#include "system.h"
-#include "utils.h"
+#include "../include/screen.h"
+#include "../include/font.h"
+#include "../include/system.h"
+#include "../include/utils.h"
 
 static u8 *BUFFER = (u8 *)0xA0000;
 
@@ -28,7 +28,7 @@ void screen_init() {
 
 void screen_clear(u8 color) { memset(BUFFER, color, SCREEN_SIZE); }
 
-void screen_set(u8 color, u16 x, u16 y) {
+void screen_set_pixel(u8 color, u16 x, u16 y) {
   if (x < SCREEN_WIDTH && y < SCREEN_HEIGHT) {
     BUFFER[y * SCREEN_WIDTH + x] = color;
   }
@@ -42,7 +42,7 @@ void screen_draw_char(char c, u16 x, u16 y, u8 color) {
   for (size_t yy = 0; yy < 8; yy++) {
     for (size_t xx = 0; xx < 8; xx++) {
       if (glyph[yy] & (1 << xx)) {
-        screen_set(color, x + xx, y + yy);
+        screen_set_pixel(color, x + xx, y + yy);
       }
     }
   }
@@ -53,5 +53,37 @@ void screen_draw_string(const char *str, u16 x, u16 y, u8 color) {
   while ((c = *str++) != 0) {
     screen_draw_char(c, x, y, color);
     x += 8;
+  }
+}
+
+void screen_draw_line(u8 color, u16 x0, u16 y0, u16 x1, u16 y1) {
+  int dx = abs(x1 - x0);
+  int dy = -abs(y1 - y0);
+  int sx = x0 < x1 ? 1 : -1;
+  int sy = y0 < y1 ? 1 : -1;
+  int err = dx + dy;
+
+  while (true) {
+    screen_set_pixel(color, x0, y0);
+    if (x0 == x1 && y0 == y1)
+      break;
+
+    int e2 = 2 * err;
+    if (e2 >= dy) {
+      err += dy;
+      x0 += sx;
+    }
+    if (e2 <= dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
+
+void screen_fill_rect(u8 color, u16 x, u16 y, u16 width, u16 height) {
+  for (u16 yy = 0; yy < height; yy++) {
+    for (u16 xx = 0; xx < width; xx++) {
+      screen_set_pixel(color, x + xx, y + yy);
+    }
   }
 }

@@ -1,3 +1,4 @@
+#include "include/asteroids.h"
 #include "include/idt.h"
 #include "include/irq.h"
 #include "include/isr.h"
@@ -5,16 +6,27 @@
 #include "include/screen.h"
 #include "include/timer.h"
 
+#define FPS 30
+
 void kernel_main() {
   idt_init();
   isr_init();
   irq_init();
   timer_init();
-
-  screen_clear(0x00);
-  screen_draw_string("Hello graphics world", 10, 10, 0x3F);
-
+  screen_init();
   keyboard_init();
-  while (1) {
+
+  u32 last_frame = 0;
+  while (true) {
+    const u32 now = (u32)timer_get();
+
+    if ((now - last_frame) > (TIMER_TPS / FPS)) {
+      last_frame = now;
+      if (KEYBOARD_CHAR_STATE('w')) {
+        screen_draw_string("W Key Pressed", 0, 0, 0x07);
+      }
+      update_game_state();
+      render_game_state();
+    }
   }
 }
