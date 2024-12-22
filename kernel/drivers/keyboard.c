@@ -1,7 +1,5 @@
 #include "../include/keyboard.h"
 #include "../include/irq.h"
-#include "../include/system.h"
-#include "../include/tty.h"
 
 u8 keyboard_layout_us[2][128] = {{KEY_NULL,
                                   KEY_ESC,
@@ -192,20 +190,17 @@ static void keyboard_handler(struct Registers *regs) {
 
   keyboard.keys[key] = !released;
 
-  // Handle Shift
   bool shift = keyboard.keys[KEY_LSHIFT] || keyboard.keys[KEY_RSHIFT];
 
-  // Ignore key releases
   if (released) {
     return;
   }
 
-  // Handle printable characters
   u8 character = keyboard_layout_us[shift ? 1 : 0][key];
   if (character) {
-    tty_putchar(character);
+    // tty_putc(character);
   } else if (key == KEY_ENTER) {
-    tty_putchar('\n');
+    // tty_putc('\n');
   } else if (key == KEY_BACKSPACE) {
   }
 }

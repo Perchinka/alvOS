@@ -1,7 +1,7 @@
 [BITS 32]
 print32:
     pusha
-    mov edx, 0xB8000 ; VGA memory
+    mov edx, 0xA0000 ; VGA memory
     mov cx, 0        ; Cursor offset
 .print_loop:
     mov al, [ebx]    ; Load character

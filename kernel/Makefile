@@ -6,6 +6,7 @@ BUILD_DIR = ../build
 # Source files
 C_SRCS = $(wildcard $(SRC_DIR)/*.c) \
          $(wildcard $(SRC_DIR)/drivers/*.c) \
+         $(wildcard $(SRC_DIR)/lib/*.c) \
          $(wildcard $(SRC_DIR)/sys/*.c)
 
 ASM_SRCS = $(SRC_DIR)/entry_point.asm
@@ -24,7 +25,7 @@ LD = i686-elf-ld
 NASM = nasm
 
 # Compilation flags
-CFLAGS = -ffreestanding -m32 -O2 -g -I$(INCLUDE_DIR)
+CFLAGS = -Wno-pointer-arith -Wno-unused-parameter -fno-builtin-function -fno-builtin -fno-pie -fno-stack-protector -ffreestanding -m32 -O2 -g -I$(INCLUDE_DIR)
 LDFLAGS = -T $(LINKER_SCRIPT) -m elf_i386
 ASMFLAGS = -f elf32
 

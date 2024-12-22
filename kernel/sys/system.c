@@ -1,5 +1,4 @@
 #include "../include/system.h"
-#include "../include/tty.h"
 
 static u32 rseed = 1;
 
@@ -23,10 +22,7 @@ u32 rand() {
 }
 
 void panic(const char *err) {
-  tty_clear();
-
   if (err != NULL) {
-    tty_write(err);
   }
 
   for (;;) {

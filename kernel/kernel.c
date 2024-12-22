@@ -2,8 +2,8 @@
 #include "include/irq.h"
 #include "include/isr.h"
 #include "include/keyboard.h"
+#include "include/screen.h"
 #include "include/timer.h"
-#include "include/tty.h"
 
 void kernel_main() {
   idt_init();
@@ -11,11 +11,10 @@ void kernel_main() {
   irq_init();
   timer_init();
 
-  tty_initialize();
-  tty_write("Welcome to alvOS 0.0.1\n");
+  screen_clear(0x00);
+  screen_draw_string("Hello graphics world", 10, 10, 0x3F);
 
   keyboard_init();
-  while (true) {
-    asm("hlt");
+  while (1) {
   }
 }
