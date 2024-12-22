@@ -65,22 +65,21 @@
 
 // Key State Macros
 #define KEY_IS_PRESS(state) (!((state) & KEY_RELEASE_FLAG))
-#define KEY_IS_RELEASE(state) (((state) & KEY_RELEASE_FLAG) != 0)
+#define KEY_IS_RELEASE(state) (!!((state) & KEY_RELEASE_FLAG))
 #define KEY_SCANCODE(state) ((state) & KEY_SCANCODE_MASK)
 
 // Modifier Check
-#define KEY_HAS_MODIFIER(state, mod_mask) (((state) & (mod_mask)) != 0)
+#define KEY_HAS_MODIFIER(state, mod_mask) (((state) & (mod_mask)))
 
 // Character Lookup Macro
-#define KEY_CHAR(state)                                                        \
-  ({                                                                           \
-    u8 scancode = KEY_SCANCODE(state);                                         \
-    (scancode < 128)                                                           \
-        ? keyboard_layout_us[KEY_HAS_MODIFIER(state, KEY_MOD_SHIFT) ? 1 : 0]   \
-                            [scancode]                                         \
+#define KEY_CHAR(_s)                                                           \
+  __extension__({                                                              \
+    __typeof__(_s) __s = (_s);                                                 \
+    KEY_SCANCODE(__s) < 128                                                    \
+        ? keyboard_layout_us[KEY_HAS_MODIFIER(__s, KEY_MOD_SHIFT) ? 1 : 0]     \
+                            [KEY_SCANCODE(__s)]                                \
         : 0;                                                                   \
   })
-
 // Keyboard State Structure
 struct Keyboard {
   u16 mods;        // Modifier states
