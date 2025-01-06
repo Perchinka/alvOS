@@ -4,25 +4,24 @@
 #include "game_engine.h"
 #include "utils.h"
 
-#define SHIP_ACCELERATION .4f
-#define DAMPNING_FACTOR 0.985f
+#define SHIP_ACCELERATION 200.0f
+#define DAMPNING_FACTOR 0.99f
 
-#define SHIP_TURN_SPEED 0.1f
+#define SHIP_TURN_SPEED 4.0f
 #define SHIP_SIZE 10.0f
 
-#define NUM_CONTROLS 4
+typedef struct {
+  Control *rotate_left;
+  Control *rotate_right;
+  Control *thrust;
+  Control *shoot;
+} ControlMap;
 
-struct GameState {
-  struct {
-    struct Control raw[NUM_CONTROLS]; // Array of all controls
-    struct Control thrust;
-    struct Control rotate_left;
-    struct Control rotate_right;
-    struct Control fire;
-  } controls;
-  size_t frames;
-};
+void map_controls(ControlMap *map, InputState *input);
 
-void update_game_state();
-void render_game_state();
+void init_player(GameObject *player);
+void update_player(GameObject *player, ControlMap *controls, float dt);
+
+void game_loop();
+
 #endif
