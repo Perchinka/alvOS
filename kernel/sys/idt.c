@@ -21,7 +21,6 @@ static struct {
 // In entry_point.asm
 extern void idt_load(uintptr_t idt_ptr);
 
-// Macro for user mode flag (bit 6 of the type field)
 #define IDT_USER_MODE 0x60
 
 void idt_set(u8 index, void (*base)(struct Registers *), u16 selector,

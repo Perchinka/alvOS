@@ -1,5 +1,14 @@
 #include "../include/math.h"
 
+f64 fmod(f64 x, f64 y) {
+  if (y == 0.0f) {
+    return 0.0f;
+  }
+
+  int quotient = (int)(x / y);
+  return x - quotient * y;
+}
+
 f64 sin(f64 x) {
   f64 result;
   asm("fsin" : "=t"(result) : "0"(x));
@@ -24,4 +33,12 @@ double sqrt(double n) {
   }
 
   return guess;
+}
+
+f64 pow(f64 x, f64 y) { // TODO rewrite this, temporary func
+  f64 res = x;
+  for (int i = 1; i < y; i++) {
+    res *= x;
+  }
+  return res;
 }

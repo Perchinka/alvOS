@@ -1,19 +1,27 @@
 #ifndef ASTEROIDS_H
 #define ASTEROIDS_H
 
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 200
+#include "game_engine.h"
+#include "utils.h"
 
-#define MAX_SHIP_SPEED 4.0f
-#define SHIP_ACCELERATION 1.0f
+#define SHIP_ACCELERATION .4f
+#define DAMPNING_FACTOR 0.985f
+
 #define SHIP_TURN_SPEED 0.1f
 #define SHIP_SIZE 10.0f
 
-typedef struct {
-  float x, y;   // Position
-  float angle;  // Rotation angle in radians
-  float vx, vy; // Velocity
-} Ship;
+#define NUM_CONTROLS 4
+
+struct GameState {
+  struct {
+    struct Control raw[NUM_CONTROLS]; // Array of all controls
+    struct Control thrust;
+    struct Control rotate_left;
+    struct Control rotate_right;
+    struct Control fire;
+  } controls;
+  size_t frames;
+};
 
 void update_game_state();
 void render_game_state();

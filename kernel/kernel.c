@@ -22,11 +22,6 @@ void kernel_main() {
 
     if ((now - last_frame) > (TIMER_TPS / FPS)) {
       last_frame = now;
-      if (KEYBOARD_CHAR_STATE('w')) {
-        screen_draw_string("W Key Pressed", 0, 0, 0x07);
-      }
-      update_game_state();
-      render_game_state();
     }
   }
 }
