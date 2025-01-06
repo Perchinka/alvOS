@@ -9,15 +9,66 @@ void map_controls(ControlMap *map, InputState *input) {
   map->shoot = &input->keys[' '];
 } // Not sure if it is the best way to do it, but it provides some scaleability
 
-static void clamp_to_screen(Vector2D *vertex) {
-  if (vertex->x < 0)
-    vertex->x = 0;
-  if (vertex->x >= SCREEN_WIDTH)
-    vertex->x = SCREEN_WIDTH - 1;
-  if (vertex->y < 0)
-    vertex->y = 0;
-  if (vertex->y >= SCREEN_HEIGHT)
-    vertex->y = SCREEN_HEIGHT - 1;
+#define LEFT 1
+#define RIGHT 2
+#define BOTTOM 4
+#define TOP 8
+
+static int compute_outcode(float x, float y) {
+  int code = 0;
+  if (x < 0)
+    code |= LEFT;
+  else if (x >= SCREEN_WIDTH)
+    code |= RIGHT;
+  if (y < 0)
+    code |= BOTTOM;
+  else if (y >= SCREEN_HEIGHT)
+    code |= TOP;
+  return code;
+}
+
+static int update_param(float p, float q, float *t0, float *t1) {
+  if (p == 0.0f) {
+    return q >= 0.0f; // Line is parallel and either inside or outside
+  }
+  float r = q / p;
+  if (p < 0.0f) {
+    if (r > *t1)
+      return 0; // Line is outside
+    if (r > *t0)
+      *t0 = r;
+  } else {
+    if (r < *t0)
+      return 0; // Line is outside
+    if (r < *t1)
+      *t1 = r;
+  }
+  return 1;
+}
+
+static int clip_line(float *x0, float *y0, float *x1, float *y1) {
+  float t0 = 0.0f, t1 = 1.0f; // Parametric range for visible segment
+  float dx = *x1 - *x0, dy = *y1 - *y0;
+
+  if (!update_param(-dx, *x0, &t0, &t1))
+    return 0; // Left
+  if (!update_param(dx, SCREEN_WIDTH - 1 - *x0, &t0, &t1))
+    return 0; // Right
+  if (!update_param(-dy, *y0, &t0, &t1))
+    return 0; // Bottom
+  if (!update_param(dy, SCREEN_HEIGHT - 1 - *y0, &t0, &t1))
+    return 0; // Top
+
+  if (t1 < 1.0f) {
+    *x1 = *x0 + t1 * dx;
+    *y1 = *y0 + t1 * dy;
+  }
+  if (t0 > 0.0f) {
+    *x0 = *x0 + t0 * dx;
+    *y0 = *y0 + t0 * dy;
+  }
+
+  return 1; // Line is visible
 }
 
 static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
@@ -30,25 +81,27 @@ static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
   float cos_r = cos(rotation);
   float sin_r = sin(rotation);
 
-  // Transform and translate vertices
+  // Transform vertices to screen coordinates
   for (int i = 0; i < 3; i++) {
     float tx = vertices[i].x * cos_r - vertices[i].y * sin_r;
     float ty = vertices[i].x * sin_r + vertices[i].y * cos_r;
 
     vertices[i].x = tx + x;
     vertices[i].y = ty + y;
-
-    // Clamp vertex to screen bounds
-    clamp_to_screen(&vertices[i]);
   }
 
-  // Draw lines connecting the vertices
-  screen_draw_line(color, vertices[0].x, vertices[0].y, vertices[1].x,
-                   vertices[1].y);
-  screen_draw_line(color, vertices[1].x, vertices[1].y, vertices[2].x,
-                   vertices[2].y);
-  screen_draw_line(color, vertices[2].x, vertices[2].y, vertices[0].x,
-                   vertices[0].y);
+  // Draw lines connecting the vertices with clipping
+  for (int i = 0; i < 3; i++) {
+    float x0 = vertices[i].x;
+    float y0 = vertices[i].y;
+    float x1 = vertices[(i + 1) % 3].x;
+    float y1 = vertices[(i + 1) % 3].y;
+
+    // Draw if at least part of the line is visible
+    if (clip_line(&x0, &y0, &x1, &y1)) {
+      screen_draw_line(color, x0, y0, x1, y1);
+    }
+  }
 }
 
 void render_player(GameObject *player) {
@@ -84,7 +137,7 @@ void update_player(GameObject *player, ControlMap *controls, float dt) {
 
   player->position =
       vector_add(player->position, vector_scale(player->velocity, dt));
-  wrap_position(&player->position, SCREEN_WIDTH, SCREEN_HEIGHT);
+  wrap_position(&player->position, SCREEN_WIDTH, SCREEN_HEIGHT, player->radius);
 }
 
 void init_player(GameObject *player) {
@@ -121,10 +174,7 @@ void game_loop() {
       last_frame = now;
       screen_clear(0);
       update_input(&state.input);
-
       update_player(player, &controls, 1.0f / FPS);
-
-      // Render game state
       render_game_state(&state);
 
       // Swap buffers or refresh the screen

@@ -22,7 +22,7 @@ typedef struct InputState {
 typedef struct GameObject {
   Vector2D position;
   Vector2D velocity;
-  float rotation; // Update later to be a Transform struct instead of 3
+  float rotation; // TODO Update later to be a Transform struct instead of 3
                   // independant fields
   float radius;   // Used for collisions everything is circle for now
   bool is_active;
@@ -43,6 +43,7 @@ void render_game_state(GameState *state);
 void update_input(InputState *input);
 
 bool check_collision(GameObject *a, GameObject *b);
-void wrap_position(Vector2D *position, int screen_width, int screen_height);
+void wrap_position(Vector2D *position, int screen_width, int screen_height,
+                   int additional_size);
 
 #endif

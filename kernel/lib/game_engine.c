@@ -49,13 +49,14 @@ bool check_collision(GameObject *a, GameObject *b) {
   return distance < (a->radius + b->radius);
 }
 
-void wrap_position(Vector2D *position, int screen_width, int screen_height) {
-  if (position->x < 0)
-    position->x += screen_width;
-  if (position->x >= screen_width)
-    position->x -= screen_width;
-  if (position->y < 0)
-    position->y += screen_height;
-  if (position->y >= screen_height)
-    position->y -= screen_height;
+void wrap_position(Vector2D *position, int screen_width, int screen_height,
+                   int additional_size) {
+  if (position->x < -additional_size)
+    position->x += screen_width + additional_size;
+  if (position->x >= screen_width + additional_size)
+    position->x -= screen_width + additional_size;
+  if (position->y < -additional_size)
+    position->y += screen_height + additional_size;
+  if (position->y >= screen_height + additional_size)
+    position->y -= screen_height + additional_size;
 }
