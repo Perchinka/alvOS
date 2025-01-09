@@ -2,12 +2,16 @@
 #include "../include/screen.h"
 #include "../include/timer.h"
 
+ControlMap controls;
+
 void map_controls(ControlMap *map, InputState *input) {
   map->rotate_left = &input->keys['a'];
   map->rotate_right = &input->keys['d'];
   map->thrust = &input->keys['w'];
   map->shoot = &input->keys[' '];
 } // Not sure if it is the best way to do it, but it provides some scaleability
+
+// ----- Wraping -----
 
 #define LEFT 1
 #define RIGHT 2
@@ -71,11 +75,61 @@ static int clip_line(float *x0, float *y0, float *x1, float *y1) {
   return 1; // Line is visible
 }
 
+// ----- Sprites (Kinda :D) -----
+
 static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
   Vector2D vertices[] = {
-      {10, 0},  // Tip of the triangle
-      {-5, -5}, // Left base
-      {-5, 5},  // Right base
+      {12, 0},   // Tip
+      {-10, 8},  // Base top
+      {-10, -8}, // Base bottom
+      {-6, 5},   // Crossbar top
+      {-6, -5},  // Crossbar bottom
+  };
+
+  float cos_r = cos(rotation);
+  float sin_r = sin(rotation);
+
+  Vector2D transformed[5];
+  for (int i = 0; i < 5; i++) {
+    float tx = vertices[i].x * cos_r - vertices[i].y * sin_r;
+    float ty = vertices[i].x * sin_r + vertices[i].y * cos_r;
+
+    transformed[i].x = tx + x;
+    transformed[i].y = ty + y;
+  }
+
+  float x0, y0, x1, y1;
+
+  // Left leg
+  x0 = transformed[0].x;
+  y0 = transformed[0].y;
+  x1 = transformed[1].x;
+  y1 = transformed[1].y;
+  if (clip_line(&x0, &y0, &x1, &y1))
+    screen_draw_line(color, x0, y0, x1, y1);
+
+  // Right leg
+  x0 = transformed[0].x;
+  y0 = transformed[0].y;
+  x1 = transformed[2].x;
+  y1 = transformed[2].y;
+  if (clip_line(&x0, &y0, &x1, &y1))
+    screen_draw_line(color, x0, y0, x1, y1);
+
+  // Bar
+  x0 = transformed[3].x;
+  y0 = transformed[3].y;
+  x1 = transformed[4].x;
+  y1 = transformed[4].y;
+  if (clip_line(&x0, &y0, &x1, &y1))
+    screen_draw_line(color, x0, y0, x1, y1);
+}
+
+static void draw_flame(u16 x, u16 y, float rotation, u8 color) {
+  Vector2D flame_vertices[] = {
+      {-6, -4}, // Left base
+      {-6, 4},  // Right base
+      {-15, 0}, // Flame tip
   };
 
   float cos_r = cos(rotation);
@@ -83,38 +137,53 @@ static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
 
   // Transform vertices to screen coordinates
   for (int i = 0; i < 3; i++) {
-    float tx = vertices[i].x * cos_r - vertices[i].y * sin_r;
-    float ty = vertices[i].x * sin_r + vertices[i].y * cos_r;
+    float tx = flame_vertices[i].x * cos_r - flame_vertices[i].y * sin_r;
+    float ty = flame_vertices[i].x * sin_r + flame_vertices[i].y * cos_r;
 
-    vertices[i].x = tx + x;
-    vertices[i].y = ty + y;
+    flame_vertices[i].x = tx + x;
+    flame_vertices[i].y = ty + y;
   }
 
   // Draw lines connecting the vertices with clipping
   for (int i = 0; i < 3; i++) {
-    float x0 = vertices[i].x;
-    float y0 = vertices[i].y;
-    float x1 = vertices[(i + 1) % 3].x;
-    float y1 = vertices[(i + 1) % 3].y;
+    float x0 = flame_vertices[i].x;
+    float y0 = flame_vertices[i].y;
+    float x1 = flame_vertices[(i + 1) % 3].x;
+    float y1 = flame_vertices[(i + 1) % 3].y;
 
-    // Draw if at least part of the line is visible
     if (clip_line(&x0, &y0, &x1, &y1)) {
       screen_draw_line(color, x0, y0, x1, y1);
     }
   }
 }
 
+// ----- Player Logic (render, update) -----
+
 void render_player(GameObject *player) {
   draw_ship(player->position.x, player->position.y, player->rotation, 255);
+
+  static int flame_visible = 0;
+  static u32 last_toggle_time = 0;
+
+  u32 current_time = timer_get();
+  if (current_time - last_toggle_time > 15) { // Toggle every 15ms
+    flame_visible = !flame_visible;
+    last_toggle_time = current_time;
+  }
+
+  if (controls.thrust->is_down &&
+      flame_visible) { // Well, maybe not the best way to do it, but it works :)
+    draw_flame(player->position.x, player->position.y, player->rotation, 255);
+  }
 }
 
-void update_player(GameObject *player, ControlMap *controls, float dt) {
+void update_player(GameObject *player, float dt) {
   Vector2D direction = {cos(player->rotation), sin(player->rotation)};
 
-  if (controls->rotate_left->is_down) {
+  if (controls.rotate_left->is_down) {
     player->rotation -= SHIP_TURN_SPEED * dt;
   }
-  if (controls->rotate_right->is_down) {
+  if (controls.rotate_right->is_down) {
     player->rotation += SHIP_TURN_SPEED * dt;
   }
 
@@ -125,7 +194,7 @@ void update_player(GameObject *player, ControlMap *controls, float dt) {
     player->rotation -= 2.0f * PI;
   }
 
-  if (controls->thrust->is_down) {
+  if (controls.thrust->is_down) {
     Vector2D thrust = {cos(player->rotation), sin(player->rotation)};
     thrust = vector_normalize(thrust);
     thrust = vector_scale(thrust, SHIP_ACCELERATION * dt);
@@ -153,16 +222,20 @@ void init_player(GameObject *player) {
 
 #define FPS 60
 
+void draw_borders() {
+  screen_draw_line(255, 0.0, 0, SCREEN_WIDTH, 0);
+  screen_draw_line(255, 0, 0, 0, SCREEN_HEIGHT);
+  screen_draw_line(255, SCREEN_WIDTH - 1, 0, SCREEN_WIDTH - 1, SCREEN_HEIGHT);
+  screen_draw_line(255, 0, SCREEN_HEIGHT - 1, SCREEN_WIDTH, SCREEN_HEIGHT - 1);
+}
+
 void game_loop() {
   GameState state;
   init_game_state(&state);
 
-  // Initialize player
   GameObject *player = &state.objects[state.object_count++];
   init_player(player);
 
-  // Map controls for the player
-  ControlMap controls;
   map_controls(&controls, &state.input);
 
   u32 last_frame = 0;
@@ -174,10 +247,11 @@ void game_loop() {
       last_frame = now;
       screen_clear(0);
       update_input(&state.input);
-      update_player(player, &controls, 1.0f / FPS);
+      update_player(player, 1.0f / FPS);
       render_game_state(&state);
+      draw_borders();
 
-      // Swap buffers or refresh the screen
+      // TODO Swap buffers
     }
   }
 }

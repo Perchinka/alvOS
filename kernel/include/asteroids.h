@@ -20,7 +20,7 @@ typedef struct {
 void map_controls(ControlMap *map, InputState *input);
 
 void init_player(GameObject *player);
-void update_player(GameObject *player, ControlMap *controls, float dt);
+void update_player(GameObject *player, float dt);
 
 void game_loop();
 
