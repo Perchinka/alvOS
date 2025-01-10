@@ -5,6 +5,8 @@
 #include "vector2d.h"
 
 #define MAX_GAME_OBJECTS 128
+#define MAX_VERTICES 16
+
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 200
 
@@ -24,8 +26,13 @@ typedef struct GameObject {
   Vector2D velocity;
   float rotation; // TODO Update later to be a Transform struct instead of 3
                   // independant fields
-  float radius;   // Used for collisions everything is circle for now
+  float size;     // Used for collisions everything is circle for now
   bool is_active;
+
+  Vector2D vertices[MAX_VERTICES]; // Kind of sprite, also it can be used for
+                                   // collisions detection
+  int vertex_count;
+
   void (*update)(struct GameObject *self, float dt);
   void (*render)(struct GameObject *self);
 } GameObject;

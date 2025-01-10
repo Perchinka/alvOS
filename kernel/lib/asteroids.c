@@ -1,6 +1,9 @@
 #include "../include/asteroids.h"
 #include "../include/screen.h"
+#include "../include/system.h"
 #include "../include/timer.h"
+
+// ----- ControlsMap -----
 
 ControlMap controls;
 
@@ -77,25 +80,19 @@ static int clip_line(float *x0, float *y0, float *x1, float *y1) {
 
 // ----- Sprites (Kinda :D) -----
 
-static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
-  Vector2D vertices[] = {
-      {12, 0},   // Tip
-      {-10, 8},  // Base top
-      {-10, -8}, // Base bottom
-      {-6, 5},   // Crossbar top
-      {-6, -5},  // Crossbar bottom
-  };
+static void draw_ship(GameObject *player) {
+  u8 color = 255;
 
-  float cos_r = cos(rotation);
-  float sin_r = sin(rotation);
+  float cos_r = cos(player->rotation);
+  float sin_r = sin(player->rotation);
 
   Vector2D transformed[5];
   for (int i = 0; i < 5; i++) {
-    float tx = vertices[i].x * cos_r - vertices[i].y * sin_r;
-    float ty = vertices[i].x * sin_r + vertices[i].y * cos_r;
+    float tx = player->vertices[i].x * cos_r - player->vertices[i].y * sin_r;
+    float ty = player->vertices[i].x * sin_r + player->vertices[i].y * cos_r;
 
-    transformed[i].x = tx + x;
-    transformed[i].y = ty + y;
+    transformed[i].x = tx + player->position.x;
+    transformed[i].y = ty + player->position.y;
   }
 
   float x0, y0, x1, y1;
@@ -125,23 +122,30 @@ static void draw_ship(u16 x, u16 y, float rotation, u8 color) {
     screen_draw_line(color, x0, y0, x1, y1);
 }
 
-static void draw_flame(u16 x, u16 y, float rotation, u8 color) {
+// I did it this way as I didn't want write whole animation and spriting system
+// for GameObjects, so this function will be called in the player render()
+// method. Not the best solution definitely, but clean and good enough for now
+static void draw_flame(GameObject *player, u8 color) {
   Vector2D flame_vertices[] = {
-      {-6, -4}, // Left base
-      {-6, 4},  // Right base
-      {-15, 0}, // Flame tip
+      {-0.35f, -0.235f}, // Left base
+      {-0.35f, 0.235f},  // Right base
+      {-0.88f, 0},       // Flame tip
   };
+  for (int i = 0; i <= sizeof(flame_vertices) / sizeof(flame_vertices[0]);
+       i++) {
+    flame_vertices[i] = vector_scale(flame_vertices[i], player->size);
+  }
 
-  float cos_r = cos(rotation);
-  float sin_r = sin(rotation);
+  float cos_r = cos(player->rotation);
+  float sin_r = sin(player->rotation);
 
   // Transform vertices to screen coordinates
   for (int i = 0; i < 3; i++) {
     float tx = flame_vertices[i].x * cos_r - flame_vertices[i].y * sin_r;
     float ty = flame_vertices[i].x * sin_r + flame_vertices[i].y * cos_r;
 
-    flame_vertices[i].x = tx + x;
-    flame_vertices[i].y = ty + y;
+    flame_vertices[i].x = tx + player->position.x;
+    flame_vertices[i].y = ty + player->position.y;
   }
 
   // Draw lines connecting the vertices with clipping
@@ -158,9 +162,8 @@ static void draw_flame(u16 x, u16 y, float rotation, u8 color) {
 }
 
 // ----- Player Logic (render, update) -----
-
 void render_player(GameObject *player) {
-  draw_ship(player->position.x, player->position.y, player->rotation, 255);
+  draw_ship(player);
 
   static int flame_visible = 0;
   static u32 last_toggle_time = 0;
@@ -173,7 +176,7 @@ void render_player(GameObject *player) {
 
   if (controls.thrust->is_down &&
       flame_visible) { // Well, maybe not the best way to do it, but it works :)
-    draw_flame(player->position.x, player->position.y, player->rotation, 255);
+    draw_flame(player, 255);
   }
 }
 
@@ -206,19 +209,83 @@ void update_player(GameObject *player, float dt) {
 
   player->position =
       vector_add(player->position, vector_scale(player->velocity, dt));
-  wrap_position(&player->position, SCREEN_WIDTH, SCREEN_HEIGHT, player->radius);
+  wrap_position(&player->position, SCREEN_WIDTH, SCREEN_HEIGHT, player->size);
 }
 
 void init_player(GameObject *player) {
   player->position = (Vector2D){SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2};
   player->velocity = (Vector2D){0, 0};
   player->rotation = 0.0f; // Measured in radians
-  player->radius = 10;     // Collision radius in pixels
+  player->size = 15;       // Collision radius in pixels
   player->is_active = true;
 
-  player->update = NULL;
+  Vector2D vertices[] = {
+      {0.7f, 0},        // Tip
+      {-0.59f, 0.47f},  // Base top
+      {-0.59f, -0.47f}, // Base bottom
+      {-0.35, 0.29},    // Crossbar top
+      {-0.35, -0.29},   // Crossbar bottom
+  };
+  for (int i = 0; i < sizeof(vertices) / sizeof(vertices[0]); ++i) {
+    player->vertices[i] = vector_scale(vertices[i], player->size);
+  }
+
+  player->update = update_player;
   player->render = render_player;
 }
+
+// ----- Asteroids Logic -----
+
+GameObject asteroids[MAX_ASTEROIDS];
+
+void update_asteroid(GameObject *asteroid, float dt) {
+
+  asteroid->position =
+      vector_add(asteroid->position, vector_scale(asteroid->velocity, dt));
+
+  wrap_position(&asteroid->position, SCREEN_WIDTH, SCREEN_HEIGHT,
+                asteroid->size);
+}
+
+void render_asteroid(GameObject *asteroid) {
+  // Draw each edge of the asteroid
+  for (int j = 0; j < asteroid->vertex_count; j++) {
+    int next = (j + 1) % asteroid->vertex_count;
+    float x0 = asteroid->position.x + asteroid->vertices[j].x;
+    float y0 = asteroid->position.y + asteroid->vertices[j].y;
+    float x1 = asteroid->position.x + asteroid->vertices[next].x;
+    float y1 = asteroid->position.y + asteroid->vertices[next].y;
+
+    if (clip_line(&x0, &y0, &x1, &y1)) {
+      screen_draw_line(255, x0, y0, x1, y1);
+    }
+  }
+}
+
+void init_asteroid(GameObject *asteroid) {
+  asteroid->position =
+      (Vector2D){rand() % SCREEN_WIDTH, rand() % SCREEN_HEIGHT};
+  asteroid->velocity = (Vector2D){(rand() % 20 + 5), (rand() % 20 + 5)};
+  asteroid->rotation = rand() % 6;
+
+  asteroid->size = 12 + ((rand() % 12) - 1);
+  asteroid->is_active = true;
+
+  float angle_step = 2.0f * PI / 16; // 16-sided polygon
+  for (int i = 0; i < 16; i++) {
+    float angle = i * angle_step + (rand() % 10 + 1) * PI / 180.0f;
+    float radius = asteroid->size - 0.3 * asteroid->size +
+                   asteroid->size * ((rand() % 5) / 10.0f);
+    asteroid->vertices[i].x = cos(angle) * radius;
+    asteroid->vertices[i].y = sin(angle) * radius;
+  }
+  asteroid->vertex_count = 16;
+
+  asteroid->update = update_asteroid;
+  asteroid->render = render_asteroid;
+}
+
+// ----- Game Loop (and stuff) -----
 
 #define FPS 60
 
@@ -236,18 +303,23 @@ void game_loop() {
   GameObject *player = &state.objects[state.object_count++];
   init_player(player);
 
+  for (int i = 0; i < MAX_ASTEROIDS; i++) {
+    GameObject *asteroid = &state.objects[state.object_count++];
+    init_asteroid(asteroid);
+  }
+
   map_controls(&controls, &state.input);
 
   u32 last_frame = 0;
 
   while (true) {
     const u32 now = (u32)timer_get();
-
     if ((now - last_frame) > (TIMER_TPS / FPS)) {
       last_frame = now;
       screen_clear(0);
+
       update_input(&state.input);
-      update_player(player, 1.0f / FPS);
+      update_game_state(&state, 1.0 / FPS);
       render_game_state(&state);
       draw_borders();
 

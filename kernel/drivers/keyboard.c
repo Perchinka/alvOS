@@ -183,15 +183,9 @@ u8 keyboard_layout_us[2][128] = {{KEY_NULL,
                                   KEY_F12}};
 
 struct Keyboard keyboard;
-static bool seeded = false;
 
 static void keyboard_handler(struct Registers *regs) {
   u16 scancode = (u16)inb(0x60);
-
-  if (!seeded) {
-    seed(((u32)scancode) * 17 + timer_get());
-    seeded = true;
-  }
 
   if (KEY_SCANCODE(scancode) == KEY_LALT ||
       KEY_SCANCODE(scancode) == KEY_RALT) {

@@ -7,8 +7,10 @@
 #define SHIP_ACCELERATION 200.0f
 #define DAMPNING_FACTOR 0.99f
 
-#define SHIP_TURN_SPEED 4.0f
+#define SHIP_TURN_SPEED 5.0f
 #define SHIP_SIZE 10.0f
+
+#define MAX_ASTEROIDS 10
 
 typedef struct {
   Control *rotate_left;

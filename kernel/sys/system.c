@@ -1,10 +1,12 @@
 #include "../include/system.h"
+#include "../include/timer.h"
 
 static u32 rseed = 1;
 
 void seed(u32 s) { rseed = s; }
 
 u32 rand() {
+  seed(timer_get() * 2556);
   static u32 x = 123456789;
   static u32 y = 362436069;
   static u32 z = 521288629;

@@ -46,17 +46,17 @@ void update_input(InputState *input) {
 bool check_collision(GameObject *a, GameObject *b) {
   Vector2D delta = vector_sub(a->position, b->position);
   float distance = vector_length(delta);
-  return distance < (a->radius + b->radius);
+  return distance < (a->size + b->size);
 }
 
 void wrap_position(Vector2D *position, int screen_width, int screen_height,
                    int additional_size) {
   if (position->x < -additional_size)
-    position->x += screen_width + additional_size;
+    position->x = screen_width + additional_size - 1;
   if (position->x >= screen_width + additional_size)
-    position->x -= screen_width + additional_size;
+    position->x = -additional_size + 1;
   if (position->y < -additional_size)
-    position->y += screen_height + additional_size;
+    position->y = screen_height + additional_size - 1;
   if (position->y >= screen_height + additional_size)
-    position->y -= screen_height + additional_size;
+    position->y = -additional_size + 1;
 }
