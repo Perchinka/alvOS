@@ -6,6 +6,7 @@
 #define E 2.7182818284590452353602874713527
 #define PI 3.14159265358979323846264338327950
 #define HALF_PI (PI / 2.0)
+#define FLT_MAX 3.40282347e+38f
 
 #define CLAMP(_value, _min, _max)                                              \
   (((_value) < (_min)) ? (_min) : ((_value) > (_max)) ? (_max) : (_value))

@@ -87,3 +87,60 @@ void screen_fill_rect(u8 color, u16 x, u16 y, u16 width, u16 height) {
     }
   }
 }
+
+void screen_draw_circle(u8 color, u16 xc, u16 yc, u16 radius) {
+  int x = 0, y = radius;
+  int d = 3 - 2 * radius;
+
+  while (y >= x) {
+    // Draw the 8 symmetric points
+    screen_set_pixel(color, xc + x, yc + y);
+    screen_set_pixel(color, xc - x, yc + y);
+    screen_set_pixel(color, xc + x, yc - y);
+    screen_set_pixel(color, xc - x, yc - y);
+    screen_set_pixel(color, xc + y, yc + x);
+    screen_set_pixel(color, xc - y, yc + x);
+    screen_set_pixel(color, xc + y, yc - x);
+    screen_set_pixel(color, xc - y, yc - x);
+
+    x++;
+
+    if (d > 0) {
+      y--;
+      d = d + 4 * (x - y) + 10;
+    } else {
+      d = d + 4 * x + 6;
+    }
+  }
+}
+
+void screen_draw_ellipse(u8 color, float xc, float yc, float a, float b,
+                         float rotation) {
+  const int segments = 100;
+  float angle_step = 2.0f * PI / segments;
+
+  float prev_x = a * cos(0);
+  float prev_y = b * sin(0);
+
+  // Apply rotation to the initial point
+  float cos_r = cos(rotation);
+  float sin_r = sin(rotation);
+  float rotated_prev_x = prev_x * cos_r - prev_y * sin_r + xc;
+  float rotated_prev_y = prev_x * sin_r + prev_y * cos_r + yc;
+
+  for (int i = 1; i <= segments; i++) {
+    float angle = i * angle_step;
+    float x = a * cos(angle);
+    float y = b * sin(angle);
+
+    // Rotate the point
+    float rotated_x = x * cos_r - y * sin_r + xc;
+    float rotated_y = x * sin_r + y * cos_r + yc;
+
+    screen_draw_line(color, rotated_prev_x, rotated_prev_y, rotated_x,
+                     rotated_y);
+
+    rotated_prev_x = rotated_x;
+    rotated_prev_y = rotated_y;
+  }
+}

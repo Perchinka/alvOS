@@ -236,7 +236,8 @@ void init_player(GameObject *player) {
 
 // ----- Asteroids Logic -----
 
-GameObject asteroids[MAX_ASTEROIDS];
+GameObject *asteroids[MAX_ASTEROIDS];
+int asteroids_amount = 0;
 
 void update_asteroid(GameObject *asteroid, float dt) {
 
@@ -306,6 +307,8 @@ void game_loop() {
   for (int i = 0; i < MAX_ASTEROIDS; i++) {
     GameObject *asteroid = &state.objects[state.object_count++];
     init_asteroid(asteroid);
+    asteroids[i] = asteroid;
+    asteroids_amount += 1;
   }
 
   map_controls(&controls, &state.input);
@@ -322,6 +325,13 @@ void game_loop() {
       update_game_state(&state, 1.0 / FPS);
       render_game_state(&state);
       draw_borders();
+
+      for (int i = 0; i < asteroids_amount; i++) {
+        if (check_collision(player, asteroids[i])) {
+          screen_draw_string("COLLISION", player->position.x,
+                             player->position.y, 200);
+        }
+      }
 
       // TODO Swap buffers
     }

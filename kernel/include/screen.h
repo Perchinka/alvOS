@@ -28,5 +28,8 @@ void screen_draw_char(char c, u16 x, u16 y, u8 color);
 void screen_draw_string(const char *str, u16 x, u16 y, u8 color);
 void screen_draw_line(u8 color, u16 x0, u16 y0, u16 x1, u16 y1);
 void screen_fill_rect(u8 color, u16 x, u16 y, u16 width, u16 height);
+void screen_draw_circle(u8 color, u16 xc, u16 yc, u16 radius);
+void screen_draw_ellipse(u8 color, float xc, float yc, float a, float b,
+                         float rotation);
 
 #endif // SCREEN_H

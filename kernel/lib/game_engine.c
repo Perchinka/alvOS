@@ -1,5 +1,5 @@
 #include "../include/game_engine.h"
-
+#include "../include/screen.h"
 // ----- GameState logic -----
 void init_game_state(GameState *state) {
   state->object_count = 0;
@@ -43,10 +43,32 @@ void update_input(InputState *input) {
 }
 
 // ---- Util functions ----
+
+bool ellipse_circle_collision(Vector2D ellipse_center, float a, float b,
+                              float rotation, Vector2D circle_center, float r) {
+  float cos_r = cos(rotation);
+  float sin_r = sin(rotation);
+
+  float dx = circle_center.x - ellipse_center.x;
+  float dy = circle_center.y - ellipse_center.y;
+
+  float local_x = dx * cos_r + dy * sin_r;
+  float local_y = -dx * sin_r + dy * cos_r;
+
+  local_x /= a;
+  local_y /= b;
+
+  float distance_squared = local_x * local_x + local_y * local_y;
+  float radius_scaled = r / ((a + b) / 2);
+
+  return distance_squared <= (1 + radius_scaled) * (1 + radius_scaled);
+}
+
 bool check_collision(GameObject *a, GameObject *b) {
-  Vector2D delta = vector_sub(a->position, b->position);
-  float distance = vector_length(delta);
-  return distance < (a->size + b->size);
+  float a_axis = a->size * 0.7f;
+  float b_axis = a->size * 0.4f;
+  return ellipse_circle_collision(a->position, a_axis, b_axis, a->rotation,
+                                  b->position, b->size);
 }
 
 void wrap_position(Vector2D *position, int screen_width, int screen_height,
