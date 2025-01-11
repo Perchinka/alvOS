@@ -93,7 +93,6 @@ void screen_draw_circle(u8 color, u16 xc, u16 yc, u16 radius) {
   int d = 3 - 2 * radius;
 
   while (y >= x) {
-    // Draw the 8 symmetric points
     screen_set_pixel(color, xc + x, yc + y);
     screen_set_pixel(color, xc - x, yc + y);
     screen_set_pixel(color, xc + x, yc - y);
@@ -122,7 +121,6 @@ void screen_draw_ellipse(u8 color, float xc, float yc, float a, float b,
   float prev_x = a * cos(0);
   float prev_y = b * sin(0);
 
-  // Apply rotation to the initial point
   float cos_r = cos(rotation);
   float sin_r = sin(rotation);
   float rotated_prev_x = prev_x * cos_r - prev_y * sin_r + xc;
@@ -133,7 +131,6 @@ void screen_draw_ellipse(u8 color, float xc, float yc, float a, float b,
     float x = a * cos(angle);
     float y = b * sin(angle);
 
-    // Rotate the point
     float rotated_x = x * cos_r - y * sin_r + xc;
     float rotated_y = x * sin_r + y * cos_r + yc;
 

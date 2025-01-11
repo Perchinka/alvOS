@@ -1,4 +1,5 @@
 #include "../include/system.h"
+#include "../include/screen.h"
 #include "../include/timer.h"
 
 static u32 rseed = 1;
@@ -25,6 +26,7 @@ u32 rand() {
 
 void panic(const char *err) {
   if (err != NULL) {
+    screen_draw_string(err, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, 200);
   }
 
   for (;;) {

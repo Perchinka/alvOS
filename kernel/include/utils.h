@@ -43,6 +43,7 @@ typedef u8 bool;
     __typeof__(_v) __v = (_v);                                                 \
     (__v ^ ((-(_x) ^ __v) & (1 << (_n))));                                     \
   })
+
 static inline u16 inports(u16 port) {
   u16 r;
   asm("inw %1, %0" : "=a"(r) : "dN"(port));
@@ -108,6 +109,22 @@ static inline char *strcpy(char *dest, const char *src) {
   return original_dest;
 }
 
+static inline char *strcat(char *dest, const char *src) {
+  char *ptr = dest;
+
+  while (*ptr != '\0') {
+    ptr++;
+  }
+
+  while (*src != '\0') {
+    *ptr++ = *src++;
+  }
+
+  *ptr = '\0';
+
+  return dest;
+}
+
 static inline void memset(void *dst, u8 value, size_t n) {
   u8 *d = dst;
 
@@ -140,6 +157,65 @@ static inline void *memmove(void *dst, const void *src, size_t n) {
   }
 
   return dst;
+}
+
+static inline void ftoa(f32 value, char *buffer, int precision) {
+  if (value < 0) {
+    *buffer++ = '-';
+    value = -value;
+  }
+
+  i32 int_part = (i32)value;
+  f32 fractional_part = value - (f32)int_part;
+
+  char temp[12];
+  char *temp_ptr = temp;
+  if (int_part == 0) {
+    *temp_ptr++ = '0';
+  } else {
+    while (int_part > 0) {
+      *temp_ptr++ = '0' + (int_part % 10);
+      int_part /= 10;
+    }
+  }
+  *temp_ptr = '\0';
+
+  for (char *start = temp, *end = temp_ptr - 1; start < end; start++, end--) {
+    char t = *start;
+    *start = *end;
+    *end = t;
+  }
+
+  strcpy(buffer, temp);
+  buffer += strlen(temp);
+
+  *buffer++ = '.';
+
+  for (int i = 0; i < precision; i++) {
+    fractional_part *= 10;
+  }
+  i32 frac_as_int = (i32)(fractional_part + 0.5f);
+  temp_ptr = temp;
+  if (frac_as_int == 0) {
+    *temp_ptr++ = '0';
+  } else {
+    while (frac_as_int > 0) {
+      *temp_ptr++ = '0' + (frac_as_int % 10);
+      frac_as_int /= 10;
+    }
+  }
+  *temp_ptr = '\0';
+
+  for (char *start = temp, *end = temp_ptr - 1; start < end; start++, end--) {
+    char t = *start;
+    *start = *end;
+    *end = t;
+  }
+
+  strcpy(buffer, temp);
+  buffer += strlen(temp);
+
+  *buffer = '\0';
 }
 
 #endif

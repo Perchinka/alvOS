@@ -26,7 +26,8 @@ typedef struct GameObject {
   Vector2D velocity;
   float rotation; // TODO Update later to be a Transform struct instead of 3
                   // independant fields
-  float size;     // Used for collisions everything is circle for now
+  float rotation_speed;
+  float size; // Used for collisions everything is circle for now
   bool is_active;
 
   Vector2D vertices[MAX_VERTICES]; // Kind of sprite, also it can be used for
@@ -52,5 +53,6 @@ void update_input(InputState *input);
 bool check_collision(GameObject *a, GameObject *b);
 void wrap_position(Vector2D *position, int screen_width, int screen_height,
                    int additional_size);
+int clip_line(float *x0, float *y0, float *x1, float *y1);
 
 #endif

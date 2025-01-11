@@ -14,70 +14,6 @@ void map_controls(ControlMap *map, InputState *input) {
   map->shoot = &input->keys[' '];
 } // Not sure if it is the best way to do it, but it provides some scaleability
 
-// ----- Wraping -----
-
-#define LEFT 1
-#define RIGHT 2
-#define BOTTOM 4
-#define TOP 8
-
-static int compute_outcode(float x, float y) {
-  int code = 0;
-  if (x < 0)
-    code |= LEFT;
-  else if (x >= SCREEN_WIDTH)
-    code |= RIGHT;
-  if (y < 0)
-    code |= BOTTOM;
-  else if (y >= SCREEN_HEIGHT)
-    code |= TOP;
-  return code;
-}
-
-static int update_param(float p, float q, float *t0, float *t1) {
-  if (p == 0.0f) {
-    return q >= 0.0f; // Line is parallel and either inside or outside
-  }
-  float r = q / p;
-  if (p < 0.0f) {
-    if (r > *t1)
-      return 0; // Line is outside
-    if (r > *t0)
-      *t0 = r;
-  } else {
-    if (r < *t0)
-      return 0; // Line is outside
-    if (r < *t1)
-      *t1 = r;
-  }
-  return 1;
-}
-
-static int clip_line(float *x0, float *y0, float *x1, float *y1) {
-  float t0 = 0.0f, t1 = 1.0f; // Parametric range for visible segment
-  float dx = *x1 - *x0, dy = *y1 - *y0;
-
-  if (!update_param(-dx, *x0, &t0, &t1))
-    return 0; // Left
-  if (!update_param(dx, SCREEN_WIDTH - 1 - *x0, &t0, &t1))
-    return 0; // Right
-  if (!update_param(-dy, *y0, &t0, &t1))
-    return 0; // Bottom
-  if (!update_param(dy, SCREEN_HEIGHT - 1 - *y0, &t0, &t1))
-    return 0; // Top
-
-  if (t1 < 1.0f) {
-    *x1 = *x0 + t1 * dx;
-    *y1 = *y0 + t1 * dy;
-  }
-  if (t0 > 0.0f) {
-    *x0 = *x0 + t0 * dx;
-    *y0 = *y0 + t0 * dy;
-  }
-
-  return 1; // Line is visible
-}
-
 // ----- Sprites (Kinda :D) -----
 
 static void draw_ship(GameObject *player) {
@@ -243,19 +179,38 @@ void update_asteroid(GameObject *asteroid, float dt) {
 
   asteroid->position =
       vector_add(asteroid->position, vector_scale(asteroid->velocity, dt));
+  asteroid->rotation += asteroid->rotation_speed * dt;
+
+  // Keep rotation within 0 to 2π
+  if (asteroid->rotation < 0) {
+    asteroid->rotation += 2.0f * PI;
+  } else if (asteroid->rotation >= 2.0f * PI) {
+    asteroid->rotation -= 2.0f * PI;
+  }
 
   wrap_position(&asteroid->position, SCREEN_WIDTH, SCREEN_HEIGHT,
                 asteroid->size);
 }
 
 void render_asteroid(GameObject *asteroid) {
-  // Draw each edge of the asteroid
+  float cos_r = cos(asteroid->rotation);
+  float sin_r = sin(asteroid->rotation);
+
+  Vector2D transformed[MAX_VERTICES];
+  for (int i = 0; i < asteroid->vertex_count; i++) {
+    float x = asteroid->vertices[i].x;
+    float y = asteroid->vertices[i].y;
+
+    transformed[i].x = x * cos_r - y * sin_r + asteroid->position.x;
+    transformed[i].y = x * sin_r + y * cos_r + asteroid->position.y;
+  }
+
   for (int j = 0; j < asteroid->vertex_count; j++) {
     int next = (j + 1) % asteroid->vertex_count;
-    float x0 = asteroid->position.x + asteroid->vertices[j].x;
-    float y0 = asteroid->position.y + asteroid->vertices[j].y;
-    float x1 = asteroid->position.x + asteroid->vertices[next].x;
-    float y1 = asteroid->position.y + asteroid->vertices[next].y;
+    float x0 = transformed[j].x;
+    float y0 = transformed[j].y;
+    float x1 = transformed[next].x;
+    float y1 = transformed[next].y;
 
     if (clip_line(&x0, &y0, &x1, &y1)) {
       screen_draw_line(255, x0, y0, x1, y1);
@@ -266,17 +221,20 @@ void render_asteroid(GameObject *asteroid) {
 void init_asteroid(GameObject *asteroid) {
   asteroid->position =
       (Vector2D){rand() % SCREEN_WIDTH, rand() % SCREEN_HEIGHT};
-  asteroid->velocity = (Vector2D){(rand() % 20 + 5), (rand() % 20 + 5)};
-  asteroid->rotation = rand() % 6;
+  do {
+    asteroid->velocity =
+        (Vector2D){.x = (rand() % 41 - 20.0f), .y = (rand() % 41 - 20.0f)};
+  } while (asteroid->velocity.x == 0.0f && asteroid->velocity.y == 0.0f);
+  asteroid->rotation = rand() % 360 * (PI / 180.0f);
+  asteroid->rotation_speed = (rand() % 3 - 1.5f);
 
-  asteroid->size = 12 + ((rand() % 12) - 1);
+  asteroid->size = 15 + ((rand() % 15));
   asteroid->is_active = true;
 
   float angle_step = 2.0f * PI / 16; // 16-sided polygon
   for (int i = 0; i < 16; i++) {
-    float angle = i * angle_step + (rand() % 10 + 1) * PI / 180.0f;
-    float radius = asteroid->size - 0.3 * asteroid->size +
-                   asteroid->size * ((rand() % 5) / 10.0f);
+    float angle = i * angle_step + (rand() % 10 + 1.0f) * PI / 180.0f;
+    float radius = asteroid->size * (0.8f + ((rand() % 5) / 10.0f));
     asteroid->vertices[i].x = cos(angle) * radius;
     asteroid->vertices[i].y = sin(angle) * radius;
   }
@@ -316,6 +274,7 @@ void game_loop() {
   u32 last_frame = 0;
 
   while (true) {
+    seed(5);
     const u32 now = (u32)timer_get();
     if ((now - last_frame) > (TIMER_TPS / FPS)) {
       last_frame = now;
@@ -327,6 +286,9 @@ void game_loop() {
       draw_borders();
 
       for (int i = 0; i < asteroids_amount; i++) {
+        screen_draw_circle(200, asteroids[i]->position.x,
+                           asteroids[i]->position.y, asteroids[i]->size);
+
         if (check_collision(player, asteroids[i])) {
           screen_draw_string("COLLISION", player->position.x,
                              player->position.y, 200);
