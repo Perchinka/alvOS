@@ -64,6 +64,107 @@ static inline void outb(u16 port, u8 data) {
   asm("outb %1, %0" : : "dN"(port), "a"(data));
 }
 
+// ----- Memory -----
+
+static inline void memset(void *dst, u8 value, size_t n) {
+  u8 *d = dst;
+
+  while (n-- > 0) {
+    *d++ = value;
+  }
+}
+
+static inline void *memcpy(void *dst, const void *src, size_t n) {
+  u8 *d = dst;
+  const u8 *s = src;
+
+  while (n-- > 0) {
+    *d++ = *s++;
+  }
+
+  return d;
+}
+
+static inline void *memmove(void *dst, const void *src, size_t n) {
+  if (dst < src) {
+    return memcpy(dst, src, n);
+  }
+
+  u8 *d = dst;
+  const u8 *s = src;
+
+  for (size_t i = n; i > 0; i--) {
+    d[i - 1] = s[i - 1];
+  }
+
+  return dst;
+}
+
+#define HEAP_SIZE 1024 * 1024 // 1 MB
+
+typedef struct MemoryBlock {
+  size_t size;              // Size of the block
+  struct MemoryBlock *next; // Pointer to the next block
+  u8 free;                  // Is the block free?
+} MemoryBlock;
+
+static u8 heap[HEAP_SIZE];            // Static memory for the heap
+static MemoryBlock *free_list = NULL; // Pointer to the first free block
+
+static inline void init_heap(void) {
+  free_list = (MemoryBlock *)heap;
+  free_list->size = HEAP_SIZE - sizeof(MemoryBlock);
+  free_list->next = NULL;
+  free_list->free = 1;
+}
+
+static inline void *malloc(size_t size) {
+  MemoryBlock *current = free_list;
+
+  while (current != NULL) {
+    if (current->free && current->size >= size) {
+
+      // If the block is larger than required, split it
+      if (current->size > size + sizeof(MemoryBlock)) {
+        MemoryBlock *new_block =
+            (MemoryBlock *)((u8 *)current + sizeof(MemoryBlock) + size);
+        new_block->size = current->size - size - sizeof(MemoryBlock);
+        new_block->next = current->next;
+        new_block->free = 1;
+
+        current->size = size;
+        current->next = new_block;
+      }
+      current->free = 0;
+      return (void *)((u8 *)current + sizeof(MemoryBlock));
+    }
+    current = current->next;
+  }
+
+  // If no suitable block found, return NULL
+  return NULL;
+}
+
+static inline void free(void *ptr) {
+  if (ptr == NULL) {
+    return;
+  }
+
+  MemoryBlock *block = (MemoryBlock *)((u8 *)ptr - sizeof(MemoryBlock));
+  block->free = 1;
+
+  MemoryBlock *current = free_list;
+  while (current != NULL) {
+    if (current->free && current->next && current->next->free) {
+      current->size += current->next->size + sizeof(MemoryBlock);
+      current->next = current->next->next;
+    }
+    current = current->next;
+  }
+}
+
+// ----- Strings -----
+
 static inline size_t strlen(const char *str) {
   size_t len = 0;
   while (*str++) {
@@ -124,41 +225,7 @@ static inline char *strcat(char *dest, const char *src) {
 
   return dest;
 }
-
-static inline void memset(void *dst, u8 value, size_t n) {
-  u8 *d = dst;
-
-  while (n-- > 0) {
-    *d++ = value;
-  }
-}
-
-static inline void *memcpy(void *dst, const void *src, size_t n) {
-  u8 *d = dst;
-  const u8 *s = src;
-
-  while (n-- > 0) {
-    *d++ = *s++;
-  }
-
-  return d;
-}
-
-static inline void *memmove(void *dst, const void *src, size_t n) {
-  if (dst < src) {
-    return memcpy(dst, src, n);
-  }
-
-  u8 *d = dst;
-  const u8 *s = src;
-
-  for (size_t i = n; i > 0; i--) {
-    d[i - 1] = s[i - 1];
-  }
-
-  return dst;
-}
-
+// ----- Converters -----
 static inline void ftoa(f32 value, char *buffer, int precision) {
   if (value < 0) {
     *buffer++ = '-';

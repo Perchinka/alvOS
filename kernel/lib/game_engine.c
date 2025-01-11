@@ -26,6 +26,44 @@ void render_game_state(GameState *state) {
   }
 }
 
+// ----- Animations -----
+static Animation animations[MAX_ANIMATIONS];
+
+void init_animations() {
+  for (int i = 0; i < MAX_ANIMATIONS; i++) {
+    animations[i].is_active = false;
+  }
+}
+
+void run_animation(float duration,
+                   void (*draw_callback)(float progress, void *context),
+                   void *context) {
+  for (int i = 0; i < MAX_ANIMATIONS; i++) {
+    if (!animations[i].is_active) {
+      animations[i].is_active = true;
+      animations[i].duration = duration;
+      animations[i].elapsed_time = 0;
+      animations[i].context = context;
+      animations[i].draw_callback = draw_callback;
+      return;
+    }
+  }
+}
+
+void update_animations(float dt) {
+  for (int i = 0; i < MAX_ANIMATIONS; i++) {
+    if (animations[i].is_active) {
+      animations[i].elapsed_time += dt;
+      if (animations[i].elapsed_time >= animations[i].duration) {
+        animations[i].is_active = false; // Mark animation as complete
+      } else if (animations[i].draw_callback) {
+        float progress = animations[i].elapsed_time / animations[i].duration;
+        animations[i].draw_callback(progress, animations[i].context);
+      }
+    }
+  }
+}
+
 // ----- Input -----
 void update_input(InputState *input) {
   for (int i = 0; i < 256; i++) {

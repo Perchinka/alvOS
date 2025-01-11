@@ -10,6 +10,8 @@
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 200
 
+#define MAX_ANIMATIONS 20
+
 typedef struct Control {
   bool is_down;          // Is the key currently pressed?
   bool is_hold;          // Was the key pressed in the previous frame?
@@ -29,6 +31,7 @@ typedef struct GameObject {
   float rotation_speed;
   float size; // Used for collisions everything is circle for now
   bool is_active;
+  float time_to_live;
 
   Vector2D vertices[MAX_VERTICES]; // Kind of sprite, also it can be used for
                                    // collisions detection
@@ -37,6 +40,14 @@ typedef struct GameObject {
   void (*update)(struct GameObject *self, float dt);
   void (*render)(struct GameObject *self);
 } GameObject;
+
+typedef struct {
+  bool is_active;
+  float duration;
+  float elapsed_time;
+  void (*draw_callback)(float progress, void *context);
+  void *context;
+} Animation;
 
 typedef struct GameState {
   GameObject objects[MAX_GAME_OBJECTS];
@@ -49,6 +60,12 @@ void update_game_state(GameState *state, float dt);
 void render_game_state(GameState *state);
 
 void update_input(InputState *input);
+
+void init_animations(void);
+void run_animation(float duration,
+                   void (*draw_callback)(float progress, void *context),
+                   void *context);
+void update_animations(float dt);
 
 bool check_collision(GameObject *a, GameObject *b);
 void wrap_position(Vector2D *position, int screen_width, int screen_height,

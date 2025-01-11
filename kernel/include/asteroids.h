@@ -11,6 +11,9 @@
 #define SHIP_SIZE 10.0f
 
 #define MAX_ASTEROIDS 10
+#define MAX_BULLETS 20
+#define BULLET_SPEED 300.0f
+#define BULLET_LIFESPAN 0.8f
 
 typedef struct {
   Control *rotate_left;

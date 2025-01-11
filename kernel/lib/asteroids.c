@@ -3,6 +3,12 @@
 #include "../include/system.h"
 #include "../include/timer.h"
 
+GameObject *asteroids[MAX_ASTEROIDS];
+int asteroids_amount = 0;
+
+GameObject *bullets[MAX_BULLETS];
+int bullet_count = 0;
+
 // ----- ControlsMap -----
 
 ControlMap controls;
@@ -97,6 +103,91 @@ static void draw_flame(GameObject *player, u8 color) {
   }
 }
 
+// ----- Bullets -----
+typedef struct {
+  Vector2D position;
+  float max_size;
+} ExplosionContext;
+
+void explosion_draw_callback(float progress, void *context) {
+  ExplosionContext *explosion = (ExplosionContext *)context;
+  float max_size = explosion->max_size;
+
+  float current_size = progress * max_size;
+
+  u8 brightness = 255 - (u8)(progress * 255);
+
+  screen_draw_circle(brightness, explosion->position.x, explosion->position.y,
+                     current_size);
+
+  float shockwave_size = current_size * 0.8f;
+  u8 shockwave_brightness = brightness / 2;
+  screen_draw_circle(shockwave_brightness, explosion->position.x,
+                     explosion->position.y, shockwave_size);
+
+  if (progress < 0.8f) {
+    for (int i = 0; i < 5; i++) {
+      float angle = progress * 360 + i * 72;
+      float debris_x = explosion->position.x + cos(angle) * current_size;
+      float debris_y = explosion->position.y + sin(angle) * current_size;
+      screen_draw_line(brightness / 2, explosion->position.x,
+                       explosion->position.y, debris_x, debris_y);
+    }
+  }
+}
+
+void spawn_explosion(Vector2D position, float size) {
+  ExplosionContext *explosion;
+  explosion->position = position;
+  explosion->max_size = size;
+
+  run_animation(.5f, explosion_draw_callback, explosion);
+}
+
+void update_bullet(GameObject *bullet, float dt) {
+  bullet->position =
+      vector_add(bullet->position, vector_scale(bullet->velocity, dt));
+  wrap_position(&bullet->position, SCREEN_WIDTH, SCREEN_HEIGHT, 1.0f);
+
+  bullet->time_to_live -= dt;
+  if (bullet->time_to_live <= 0.0f) {
+    bullet->is_active = false; // Bullet explires
+  }
+
+  // Check collision with asteroids
+  for (int i = 0; i < MAX_ASTEROIDS; i++) {
+    if (asteroids[i]->is_active && check_collision(bullet, asteroids[i])) {
+      bullet->is_active = false;
+      asteroids[i]->is_active = false;
+
+      spawn_explosion(asteroids[i]->position, asteroids[i]->size);
+
+      break;
+    }
+  }
+}
+
+void render_bullet(GameObject *bullet) {
+  if (bullet->is_active) {
+    screen_draw_circle(255, bullet->position.x, bullet->position.y,
+                       bullet->size);
+  }
+}
+
+void init_bullet(GameObject *bullet, GameObject *player) {
+  bullet->position = player->position;
+  bullet->velocity =
+      vector_add((Vector2D){cos(player->rotation) * BULLET_SPEED,
+                            sin(player->rotation) * BULLET_SPEED},
+                 player->velocity);
+  bullet->rotation = player->rotation;
+  bullet->size = 1;
+  bullet->is_active = true;
+  bullet->time_to_live = BULLET_LIFESPAN;
+  bullet->update = update_bullet;
+  bullet->render = render_bullet;
+}
+
 // ----- Player Logic (render, update) -----
 void render_player(GameObject *player) {
   draw_ship(player);
@@ -139,7 +230,14 @@ void update_player(GameObject *player, float dt) {
     thrust = vector_scale(thrust, SHIP_ACCELERATION * dt);
     player->velocity = vector_add(player->velocity, thrust);
   }
-
+  if (controls.shoot->is_pressed) { // Shoot on button press
+    for (int i = 0; i < MAX_BULLETS; i++) {
+      if (!bullets[i]->is_active) { // Find an inactive bullet
+        init_bullet(bullets[i], player);
+        break;
+      }
+    }
+  }
   // Apply friction to reduce velocity over time
   player->velocity = vector_scale(player->velocity, DAMPNING_FACTOR);
 
@@ -171,9 +269,6 @@ void init_player(GameObject *player) {
 }
 
 // ----- Asteroids Logic -----
-
-GameObject *asteroids[MAX_ASTEROIDS];
-int asteroids_amount = 0;
 
 void update_asteroid(GameObject *asteroid, float dt) {
 
@@ -256,8 +351,10 @@ void draw_borders() {
 }
 
 void game_loop() {
+  seed(5);
   GameState state;
   init_game_state(&state);
+  init_animations();
 
   GameObject *player = &state.objects[state.object_count++];
   init_player(player);
@@ -269,25 +366,35 @@ void game_loop() {
     asteroids_amount += 1;
   }
 
+  for (int i = 0; i < MAX_BULLETS; i++) {
+    GameObject *bullet = &state.objects[state.object_count++];
+    init_asteroid(bullet);
+    bullets[i] = bullet;
+    bullets[i]->is_active = false;
+  }
+
   map_controls(&controls, &state.input);
 
   u32 last_frame = 0;
+  float delta_time = 1.0f / FPS;
 
   while (true) {
-    seed(5);
     const u32 now = (u32)timer_get();
     if ((now - last_frame) > (TIMER_TPS / FPS)) {
       last_frame = now;
+
       screen_clear(0);
 
       update_input(&state.input);
-      update_game_state(&state, 1.0 / FPS);
+      update_game_state(&state, delta_time);
+      update_animations(delta_time);
+
       render_game_state(&state);
       draw_borders();
 
       for (int i = 0; i < asteroids_amount; i++) {
-        screen_draw_circle(200, asteroids[i]->position.x,
-                           asteroids[i]->position.y, asteroids[i]->size);
+        if (!asteroids[i]->is_active)
+          continue;
 
         if (check_collision(player, asteroids[i])) {
           screen_draw_string("COLLISION", player->position.x,

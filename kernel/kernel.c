@@ -6,6 +6,7 @@
 #include "include/screen.h"
 #include "include/system.h"
 #include "include/timer.h"
+#include "include/utils.h"
 
 void kernel_main() {
   idt_init();
@@ -14,6 +15,7 @@ void kernel_main() {
   timer_init();
   screen_init();
   keyboard_init();
+  init_heap();
 
   game_loop();
 }
