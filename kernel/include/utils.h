@@ -285,4 +285,32 @@ static inline void ftoa(f32 value, char *buffer, int precision) {
   *buffer = '\0';
 }
 
+static inline char *itoa(int value, char *buffer) {
+  char temp[12];
+  int i = 0;
+  int is_negative = (value < 0);
+
+  if (is_negative) {
+    value = -value;
+  }
+
+  // Generate digits in reverse order
+  do {
+    temp[i++] = (value % 10) + '0';
+    value /= 10;
+  } while (value > 0);
+
+  if (is_negative) {
+    temp[i++] = '-';
+  }
+
+  // Reverse the string into the buffer
+  int j = 0;
+  while (i > 0) {
+    buffer[j++] = temp[--i];
+  }
+  buffer[j] = '\0';
+
+  return buffer;
+}
 #endif

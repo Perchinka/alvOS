@@ -11,6 +11,9 @@
 #define CLAMP(_value, _min, _max)                                              \
   (((_value) < (_min)) ? (_min) : ((_value) > (_max)) ? (_max) : (_value))
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 static inline int abs(int value) { return value < 0 ? -value : value; }
 
 f64 fmod(f64 x, f64 m);

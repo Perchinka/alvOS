@@ -34,7 +34,7 @@ load_kernel:
     call print16_nl
 
     mov bx, KERNEL_OFFSET ; Read from disk and store at KERNEL_OFFSET
-    mov dh, 40 ; Number of sectors to read
+    mov dh, 52 ; Number of sectors to read
     mov dl, [BOOT_DRIVE]
     call disk_load
     ret

@@ -8,7 +8,7 @@
 #define KEY_ESC 27
 #define KEY_BACKSPACE '\b'
 #define KEY_TAB '\t'
-#define KEY_ENTER '\n'
+#define KEY_ENTER 0x1C
 #define KEY_RETURN '\r'
 
 #define KEY_INSERT 0x90
@@ -91,8 +91,8 @@ extern u8 keyboard_layout_us[2][128];
 extern struct Keyboard keyboard;
 
 // Inline Accessor Macros
-#define KEYBOARD_KEY_STATE(scancode) (keyboard.keys[(scancode)])
-#define KEYBOARD_CHAR_STATE(character) (keyboard.chars[(u8)(character)])
+#define KEYBOARD_KEY(scancode) (keyboard.keys[(scancode)])
+#define KEYBOARD_CHAR(character) (keyboard.chars[(u8)(character)])
 
 void keyboard_init();
 

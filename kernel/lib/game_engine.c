@@ -1,8 +1,13 @@
 #include "../include/game_engine.h"
 #include "../include/screen.h"
+
 // ----- GameState logic -----
 void init_game_state(GameState *state) {
   state->object_count = 0;
+  state->lives = 3;
+  state->score = 0;
+  state->object_count = 0;
+  memset(state->objects, 0, sizeof(state->objects));
   for (int i = 0; i < 256; i++) {
     state->input.keys[i] = (Control){0};
   }
@@ -69,7 +74,7 @@ void update_input(InputState *input) {
   for (int i = 0; i < 256; i++) {
     Control *control = &input->keys[i];
     control->is_hold = control->is_down;
-    control->is_down = KEYBOARD_CHAR_STATE(i);
+    control->is_down = KEYBOARD_CHAR(i);
     control->is_pressed = control->is_down && !control->is_hold;
 
     if (control->is_pressed) {
@@ -183,4 +188,9 @@ int clip_line(float *x0, float *y0, float *x1, float *y1) {
   }
 
   return 1; // Line is visible
+}
+
+bool clip_circle(float x, float y, float radius) {
+  return x + radius >= 0 && x - radius < SCREEN_WIDTH && y + radius >= 0 &&
+         y - radius < SCREEN_HEIGHT;
 }

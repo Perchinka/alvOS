@@ -52,7 +52,14 @@ typedef struct {
 typedef struct GameState {
   GameObject objects[MAX_GAME_OBJECTS];
   size_t object_count;
+
   InputState input;
+
+  // Asteroids related
+  int lives;
+  int score;
+  bool is_game_over;
+  bool in_menu;
 } GameState;
 
 void init_game_state(GameState *state);
@@ -71,5 +78,6 @@ bool check_collision(GameObject *a, GameObject *b);
 void wrap_position(Vector2D *position, int screen_width, int screen_height,
                    int additional_size);
 int clip_line(float *x0, float *y0, float *x1, float *y1);
+bool clip_circle(float x, float y, float radius);
 
 #endif

@@ -7,7 +7,7 @@ static u32 rseed = 1;
 void seed(u32 s) { rseed = s; }
 
 u32 rand() {
-  seed(rseed + timer_get() * 101);
+  seed(rseed + timer_get() * 10000);
   static u32 x = 123456789;
   static u32 y = 362436069;
   static u32 z = 521288629;
