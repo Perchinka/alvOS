@@ -29,12 +29,11 @@ typedef struct GameObject {
   float rotation; // TODO Update later to be a Transform struct instead of 3
                   // independant fields
   float rotation_speed;
-  float size; // Used for collisions everything is circle for now
+  float size; // Radius of circullar collider
   bool is_active;
   float time_to_live;
 
-  Vector2D vertices[MAX_VERTICES]; // Kind of sprite, also it can be used for
-                                   // collisions detection
+  Vector2D vertices[MAX_VERTICES]; // Sprites
   int vertex_count;
 
   void (*update)(struct GameObject *self, float dt);
@@ -55,7 +54,7 @@ typedef struct GameState {
 
   InputState input;
 
-  // Asteroids related
+  // Asteroids related, couldn't separate logic, not really experienced in C
   int lives;
   int score;
   bool is_game_over;

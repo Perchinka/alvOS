@@ -127,7 +127,7 @@ void wrap_position(Vector2D *position, int screen_width, int screen_height,
 }
 
 // ----- Wraping -----
-
+// Liang-Barsky algorithm
 #define LEFT 1
 #define RIGHT 2
 #define BOTTOM 4
@@ -190,6 +190,7 @@ int clip_line(float *x0, float *y0, float *x1, float *y1) {
   return 1; // Line is visible
 }
 
+// Used for explosion animation
 bool clip_circle(float x, float y, float radius) {
   return x + radius >= 0 && x - radius < SCREEN_WIDTH && y + radius >= 0 &&
          y - radius < SCREEN_HEIGHT;
