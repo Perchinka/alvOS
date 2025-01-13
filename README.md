@@ -1,4 +1,7 @@
 # AlvOS
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/c630a960-0b13-46c2-8926-4b2c99d89d8a" alt="AlvOS Screenshot">
+</div>
 
 Or **Asteroids OS**🎮🚀, my christmas weekend project.
 I built a minimal operating system that runs an "Asteroids" game. This project is inspired by materials from [TetrisOS video by jdh](https://www.youtube.com/watch?v=FaILnmUYS_U) and the [OSDev Wiki](https://wiki.osdev.org/Expanded_Main_Page).
