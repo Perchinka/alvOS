@@ -30,5 +30,5 @@ clean:
 	rm -rf build/
 
 # Run the image in QEMU
-run: clean $(DISK_IMG) 
+run: 
 	qemu-system-i386 -drive format=raw,file=$(DISK_IMG)
