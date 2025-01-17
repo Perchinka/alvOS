@@ -16,7 +16,7 @@ Because it's fun! And I’ve wanted to build my own OS since I was in middle sch
 Want to try it out? Here’s how:
 
 ### Prerequisites
-If you want to simply launch the OS and test it out, ensure you have **qemu** installed on your machine. 
+If you want to simply launch the OS and test it out, ensure you have **qemu** installed on your machine. (I use **qemu-system-i386**)
 > It’s designed to run in `qemu`. Running it on real hardware might not work, but if it does, let me know!
 
 If you want to play around and build the OS yourself from sources, ensure you also have the following installed:
