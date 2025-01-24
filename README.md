@@ -4,8 +4,11 @@
 </div>
 
 
-
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/zsoB8iM0r5U/0.jpg)](https://www.youtube.com/watch?v=zsoB8iM0r5U)
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=zsoB8iM0r5U">
+    <img src="https://img.youtube.com/vi/zsoB8iM0r5U/0.jpg" alt="Demo">
+  </a>
+</div>
 
 
 
